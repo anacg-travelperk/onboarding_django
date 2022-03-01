@@ -1,8 +1,19 @@
-from django.urls import path
+# from xml.etree.ElementInclude import include
+from django.urls import path, include
+from rest_framework import routers
 
-from . import views
+from recipe import views
+
+# urlpatterns = [
+#     path("", views.index, name="index"),
+#     # path("<int:name>/", views.recipecontent, name="recipecontent"),
+# ]
+
+router = routers.DefaultRouter()
+router.register("", views.RecipeViewSet)
+
+# app_name = "recipe"
 
 urlpatterns = [
-    path("", views.index, name="index"),
-    # path("<int:name>/", views.recipecontent, name="recipecontent"),
+    path("", include(router.urls)),
 ]

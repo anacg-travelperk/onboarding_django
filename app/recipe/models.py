@@ -1,4 +1,4 @@
-from unicodedata import name
+# from unicodedata import name
 from django.db import models
 
 
@@ -13,11 +13,11 @@ class Recipe(models.Model):
         return self.name
 
 
-class Ingredient(models.Model):
-    """Ingredient object"""
+# class Ingredient(models.Model):
+#     """Ingredient object to be used in a recipe"""
 
-    recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
+#     recipe = models.ForeignKey(Recipe, on_delete=models.CASCADE)
+#     name = models.CharField(max_length=255)
 
-    def __str__(self):
-        return self.name
+#     def __str__(self):
+#         return self.name
