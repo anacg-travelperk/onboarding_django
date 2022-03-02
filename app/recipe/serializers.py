@@ -4,7 +4,7 @@ from .models import Recipe, Ingredient
 
 class IngredientSerializer(serializers.ModelSerializer):
     class Meta:
-        model: Ingredient
+        model = Ingredient
         fields = "__all__"
 
 
