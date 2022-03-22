@@ -21,6 +21,19 @@ def sample_recipe():
     return recipe
 
 
+def sample_recipe2():
+    """Create and return a sample recipe"""
+    defaults = {
+        "name": "Lasagna",
+        "description": "cook at 180",
+    }
+    recipe = Recipe.objects.create(**defaults)
+    recipe.ingredients.create(name="frozen lasagna")
+    recipe.ingredients.create(name="another frozen lasagna")
+
+    return recipe
+
+
 class RecipeApiTests(TestCase):
     def setUp(self):
         self.client = APIClient()
@@ -41,12 +54,14 @@ class RecipeApiTests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data["name"], recipe.name)
 
-    def test_retrieve_filtered_recipes(self):
+    def test_retrieve_filtered_recipe(self):
         sample_recipe()
-        res = self.client.get("/recipes/?name=mple")
+        recipe = sample_recipe2()
+        res = self.client.get(f"/recipes/?name=agna")
 
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]["name"], recipe.name)
 
     def test_create_recipe(self):
         payload = {
@@ -63,17 +78,41 @@ class RecipeApiTests(TestCase):
             data=json.dumps(payload),
             content_type="application/json",
         )
-
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-
         recipe = Recipe.objects.get(id=response.data["id"])
-        self.assertEqual(response.data["name"], recipe.name)
-        self.assertEqual(len(response.data["ingredients"]), recipe.ingredients.count())
+        ingredients = recipe.ingredients.all()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(payload["name"], recipe.name)
+        self.assertEqual(payload["description"], recipe.description)
+        self.assertEqual(len(payload["ingredients"]), ingredients.count())
+        for ingredient in ingredients:
+            self.assertTrue({"name": ingredient.name} in payload["ingredients"])
 
-    def test_modify_recipe(self):
+    def test_modify_recipe_name_and_description(self):
         recipe = sample_recipe()
-
         payload = {
+            "name": "modified name",
+            "description": "modified description",
+            "ingredients": [
+                {"name": "carrot"},
+                {"name": "onion"},
+                {"name": "leek"},
+            ],
+        }
+        response = self.client.patch(
+            f"/recipes/{recipe.id}/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        updated_recipe = Recipe.objects.get(id=recipe.id)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(updated_recipe.name, payload["name"])
+        self.assertEqual(updated_recipe.description, payload["description"])
+
+    def test_modify_recipe_ingredients(self):
+        recipe = sample_recipe()
+        payload = {
+            "name": "Sample recipe",
+            "description": "instructions for the recipe",
             "ingredients": [
                 {"name": "carrot"},
                 {"name": "onion"},
@@ -86,11 +125,13 @@ class RecipeApiTests(TestCase):
             data=json.dumps(payload),
             content_type="application/json",
         )
-
         updated_recipe = Recipe.objects.get(id=recipe.id)
+        updated_ingredients = updated_recipe.ingredients.all()
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(updated_recipe.ingredients.count(), 3)
+        for ingredient in updated_ingredients:
+            self.assertTrue({"name": ingredient.name} in payload["ingredients"])
 
     def test_delete_recipe(self):
         recipe = sample_recipe()
@@ -99,3 +140,45 @@ class RecipeApiTests(TestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Recipe.objects.count(), 0)
         self.assertEqual(Ingredient.objects.count(), 0)
+
+    def test_invalid_recipe_name(self):
+        payload = {
+            "name": "",
+            "description": "boil ingredients",
+            "ingredients": [
+                {"name": "carrot"},
+                {"name": "onion"},
+                {"name": "leek"},
+            ],
+        }
+        response = self.client.post(
+            "/recipes/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_invalid_recipe_description(self):
+        payload = {
+            "name": "name",
+            "description": "",
+            "ingredients": [
+                {"name": "carrot"},
+                {"name": "onion"},
+                {"name": "leek"},
+            ],
+        }
+        response = self.client.post(
+            "/recipes/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_retrieve_non_existing_recipe(self):
+        recipe = sample_recipe()
+        recipeId = recipe.id
+        res_delete = self.client.delete(f"/recipes/{recipeId}/")
+        self.assertEqual(res_delete.status_code, status.HTTP_204_NO_CONTENT)
+        res = self.client.get(f"/recipes/{recipeId}/")
+        self.assertEqual(res.status_code, status.HTTP_404_NOT_FOUND)
