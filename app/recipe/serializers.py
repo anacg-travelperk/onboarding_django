@@ -39,8 +39,12 @@ class RecipeSerializer(serializers.ModelSerializer):
         recipe = instance
         ingredients_data = validated_data["ingredients"]
 
-        if ingredients_data:
-            recipe.ingredients.all().delete()
-            for ingredient in ingredients_data:
-                Ingredient.objects.create(recipe=recipe, name=ingredient["name"])
+        recipe.name = validated_data.get("name", recipe.name)
+        recipe.description = validated_data.get("description", recipe.description)
+        recipe.save()
+
+        recipe.ingredients.all().delete()
+        for ingredient in ingredients_data:
+            Ingredient.objects.create(recipe=recipe, name=ingredient["name"])
+
         return recipe
