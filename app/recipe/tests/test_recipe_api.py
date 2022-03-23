@@ -175,6 +175,19 @@ class RecipeApiTests(TestCase):
         )
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_invalid_recipe_ingredientList(self):
+        payload = {
+            "name": "name",
+            "description": "description",
+            "ingredients": [],
+        }
+        response = self.client.post(
+            "/recipes/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_retrieve_non_existing_recipe(self):
         recipe = sample_recipe()
         recipeId = recipe.id
